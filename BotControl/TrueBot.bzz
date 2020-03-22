@@ -1,0 +1,99 @@
+
+### BUZZ FUNCTIONS ##
+
+
+
+function init() {
+	dog = swarm.create(0)
+	sheep = swarm.create(1)
+	dog.select(id == 0 or id == 1)
+	sheep.select(id != 0 and id != 1)
+}
+
+
+### Fonctions pour les chiens ###
+
+function d_move() {
+	var maxDist = 0
+	var maxAngle = 0
+	var counter = 0
+	while (counter < 8) {
+		if ((proximity[counter].angle < 100*math.pi/180) and (proximity[counter].angle > -100*math.pi/180) and (proximity[counter].value > maxDist)) {
+			maxDist = proximity[counter].value
+			maxAngle = proximity[counter].angle
+		}
+		counter = counter + 1
+	}
+	if (maxDist > 0) {
+		if (maxAngle > 0) {
+			set_wheels(10.0,0.0)
+		}
+		else {
+			set_wheels(0.0,10.0)
+		}
+	}
+	else {
+		set_wheels(10.0,10.0)
+	}
+}
+
+### Fonctions pour les moutons ###
+
+function beh() {
+	var dogs = 0
+	dogs =  neighbors.nonkin().count()
+	if (dogs != 0) {
+		log("BEEEEEEH il y a ", dogs," loooooup!")
+	}
+}
+
+
+function s_move() {
+	close_bot = neighbors.filter(function(rid, data) { return data.distance < 100 })
+	close_dog =  close_bot.nonkin()
+	close_sheep =  close_bot.kin()
+	
+	dir = 0
+	close_dog.foreach(function(rid, data) {
+		
+		if (data.azimuth > 0) {
+			dir = data.azimuth-math.pi
+		}
+		else if (data.azimuth < 0) {
+			dir = data.azimuth+math.pi
+		}
+		else {
+			dir = 0
+		}
+		
+		return dir
+	})
+   	if (dir != 0) {
+		gotop(10.0,dir)
+	}
+	else {
+		set_wheels(0.0,0.0)
+	}
+}
+
+### Fonctions pour les deux ###
+
+
+
+
+function step() {
+	
+	dog.exec(function() { d_move() }) 
+	sheep.exec(function() { s_move() })
+		
+		
+	
+}
+
+
+
+function reset() {
+}
+
+function destroy() {
+}
