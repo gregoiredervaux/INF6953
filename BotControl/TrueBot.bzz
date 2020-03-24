@@ -3,16 +3,9 @@
 
 
 
-function init() {
-	dog = swarm.create(0)
-	sheep = swarm.create(1)
-	dog.select(id == 0 or id == 1)
-	sheep.select(id != 0 and id != 1)
-}
-
 
 ### Fonctions pour les chiens ###
-
+# Mouvement des chiens (marche aleatoire pour le moment)
 function d_move() {
 	var maxDist = 0
 	var maxAngle = 0
@@ -38,7 +31,7 @@ function d_move() {
 }
 
 ### Fonctions pour les moutons ###
-
+# Juste un teste de reconnaissance de voisins
 function beh() {
 	var dogs = 0
 	dogs =  neighbors.nonkin().count()
@@ -47,29 +40,29 @@ function beh() {
 	}
 }
 
-
+# Fonction de mouvement du mouton (comportement)
 function s_move() {
-	close_bot = neighbors.filter(function(rid, data) { return data.distance < 100 })
-	close_dog =  close_bot.nonkin()
-	close_sheep =  close_bot.kin()
-	
-	dir = 0
-	close_dog.foreach(function(rid, data) {
-		
-		if (data.azimuth > 0) {
-			dir = data.azimuth-math.pi
-		}
-		else if (data.azimuth < 0) {
-			dir = data.azimuth+math.pi
-		}
-		else {
-			dir = 0
-		}
-		
-		return dir
+	#close_bot = neighbors.filter(function(rid, data) { return data.distance < 100 })
+	neighbors_dog =  neighbors.nonkin()
+	neighbors_sheep =  neighbors.kin()
+	# calcul de l'angle de direction à prendre
+	direction = 0
+	neighbors_sheep.foreach(function(rid, data) {
+		direction = direction + data.azimuth
 	})
-   	if (dir != 0) {
-		gotop(10.0,dir)
+	log(id, ": ", direction)
+	neighbors_dog.foreach(function(rid, data) {
+		#azi_nei = read_knowledge(knowledge, rid, 0)
+		#if (azi_nei != -1) {
+		#	direction = direction + oppdir(azi_nei)
+		#}
+		direction = direction + oppdir(data.azimuth)
+	})
+	
+   	if (neighbors.count() != 0) {
+		direction = direction / neighbors.count()
+		
+		gotop(10.0,direction)
 	}
 	else {
 		set_wheels(0.0,0.0)
@@ -77,23 +70,101 @@ function s_move() {
 }
 
 ### Fonctions pour les deux ###
+# Data Table
+# y		Data
+# 0		Neighbor Azimut
+# 1		Neighbor Distance
+# 2 	Visibility bit (1 if the bot is visible at this time step)
 
-
-
-
-function step() {
-	
-	dog.exec(function() { d_move() }) 
-	sheep.exec(function() { s_move() })
-		
-		
-	
+# Write a table as if it was a matrix
+function write_knowledge(k, row, col, val) {
+    var key = string.concat(string.tostring(row),"-",string.tostring(col))
+    k[key] = val
 }
 
+# Read a table as if it was a matrix
+function read_knowledge(k, row, col) {
+    var key = string.concat(string.tostring(row),"-",string.tostring(col))
+    if (k[key] == nil) {
+        # log("Warning: reading 'nil' value from the knowledge table, returning -1")
+        return -1
+    } else {
+        return k[key]
+    }
+}
 
+# Write informations about the neighborhood in the table
+function check_your_neighborhood() {    
+    # Reset to 0 the visibility of all neighbors
+    foreach(knowledge, function(key, value) {
+          column = string.sub(key, string.length(key)-1,string.length(key))
+          if (column=='2') { 
+              knowledge[key] = 0 
+          }     
+    })    
+    neighbors.foreach( function(rid, data) {               
+        # For each neighbor:       
+        # Record the neighbor azimuth in my own knowledge table
+        write_knowledge(knowledge, rid, 0, rtod(data.azimuth))        
+        # Record the neighbor distance in my own knowledge table
+        write_knowledge(knowledge, rid, 1, data.distance)   
+        # Set neighbor as visible
+        write_knowledge(knowledge, rid, 2, 1)     
+    })      
+}
 
+# Rads to degrees
+function rtod(r) {
+   return (r*(180.0/math.pi))
+}
+
+# Degrees to rads
+function dtor(d) {
+   return (math.pi*(d/180.0))
+}
+
+# printing the contents of a table: a custom function
+function table_print(t) {
+  foreach(t, function(key, value) {
+      log(id,": ",key, " -> ", value)
+    })
+}
+
+# Calculate the opposite direction (verifier pour angle = 0)
+function oppdir(azimuth) {
+	if (azimuth > 0) {
+		return (azimuth - math.pi)
+	}
+	else {
+		return (azimuth + math.pi)
+	}
+}
+	
+
+### Fonctionnement Global ###
+# Executed at init time
+function init() {
+	# Local knowledge table
+  	knowledge = {}
+	# On initialise 2 swarm (dog et sheep) pour différencier deux comportements
+	dog = swarm.create(0)
+	sheep = swarm.create(1)
+	dog.select(id == 0 or id == 1100)
+	sheep.select(id != 0 and id != 1100)
+}
+
+# Executed every time step
+function step() {
+	check_your_neighborhood()
+	#table_print(knowledge)
+	dog.exec(function() { d_move() }) 
+	sheep.exec(function() { s_move() })	
+}
+
+# Executed once when the robot (or the simulator) is reset.
 function reset() {
 }
 
+# Execute at exit
 function destroy() {
 }
