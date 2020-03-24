@@ -1,80 +1,14 @@
 
 ### BUZZ FUNCTIONS ##
 
-
-
-
-### Fonctions pour les chiens ###
-# Mouvement des chiens (marche aleatoire pour le moment)
-function d_move() {
-	var maxDist = 0
-	var maxAngle = 0
-	var counter = 0
-	while (counter < 8) {
-		if ((proximity[counter].angle < 100*math.pi/180) and (proximity[counter].angle > -100*math.pi/180) and (proximity[counter].value > maxDist)) {
-			maxDist = proximity[counter].value
-			maxAngle = proximity[counter].angle
-		}
-		counter = counter + 1
-	}
-	if (maxDist > 0) {
-		if (maxAngle > 0) {
-			set_wheels(10.0,0.0)
-		}
-		else {
-			set_wheels(0.0,10.0)
-		}
-	}
-	else {
-		set_wheels(10.0,10.0)
-	}
-}
-
-### Fonctions pour les moutons ###
-# Juste un teste de reconnaissance de voisins
-function beh() {
-	var dogs = 0
-	dogs =  neighbors.nonkin().count()
-	if (dogs != 0) {
-		log("BEEEEEEH il y a ", dogs," loooooup!")
-	}
-}
-
-# Fonction de mouvement du mouton (comportement)
-function s_move() {
-	#close_bot = neighbors.filter(function(rid, data) { return data.distance < 100 })
-	neighbors_dog =  neighbors.nonkin()
-	neighbors_sheep =  neighbors.kin()
-	# calcul de l'angle de direction à prendre
-	direction = 0
-	neighbors_sheep.foreach(function(rid, data) {
-		direction = direction + data.azimuth
-	})
-	log(id, ": ", direction)
-	neighbors_dog.foreach(function(rid, data) {
-		#azi_nei = read_knowledge(knowledge, rid, 0)
-		#if (azi_nei != -1) {
-		#	direction = direction + oppdir(azi_nei)
-		#}
-		direction = direction + oppdir(data.azimuth)
-	})
-	
-   	if (neighbors.count() != 0) {
-		direction = direction / neighbors.count()
-		
-		gotop(10.0,direction)
-	}
-	else {
-		set_wheels(0.0,0.0)
-	}
-}
-
 ### Fonctions pour les deux ###
-# Data Table
+# Data Table (maintenant adaptable selon le type du bot (chien/mouton))
 # y		Data
 # 0		Neighbor Azimut
 # 1		Neighbor Distance
 # 2 	Visibility bit (1 if the bot is visible at this time step)
+# 3		Type bit (1 if the bot is the same type)
+
 
 # Write a table as if it was a matrix
 function write_knowledge(k, row, col, val) {
@@ -82,15 +16,17 @@ function write_knowledge(k, row, col, val) {
     k[key] = val
 }
 
-# Read a table as if it was a matrix
+# Read a table as if it was a matrix (bug à voir)
 function read_knowledge(k, row, col) {
     var key = string.concat(string.tostring(row),"-",string.tostring(col))
-    if (k[key] == nil) {
-        # log("Warning: reading 'nil' value from the knowledge table, returning -1")
-        return -1
-    } else {
-        return k[key]
-    }
+	#log(key, ", ", k[key])
+    #if (k[key] == nil) {
+    #   log("Warning: reading 'nil' value from the knowledge table, returning -1")
+    #    return -1
+    #} else {
+    #    return k[key]
+    #}
+	return k[key]
 }
 
 # Write informations about the neighborhood in the table
@@ -102,15 +38,28 @@ function check_your_neighborhood() {
               knowledge[key] = 0 
           }     
     })    
-    neighbors.foreach( function(rid, data) {               
-        # For each neighbor:       
+    neighbors.nonkin().foreach( function(rid, data) {               
+        # For each nonkin neighbor:       
         # Record the neighbor azimuth in my own knowledge table
-        write_knowledge(knowledge, rid, 0, rtod(data.azimuth))        
+        write_knowledge(knowledge, rid, 0, data.azimuth)        
         # Record the neighbor distance in my own knowledge table
         write_knowledge(knowledge, rid, 1, data.distance)   
         # Set neighbor as visible
-        write_knowledge(knowledge, rid, 2, 1)     
-    })      
+        write_knowledge(knowledge, rid, 2, 1)  
+		# Set neighbor as different type
+        write_knowledge(knowledge, rid, 3, 0)     
+    })  
+	neighbors.kin().foreach( function(rid, data) {               
+        # For each kin neighbor:       
+        # Record the neighbor azimuth in my own knowledge table
+        write_knowledge(knowledge, rid, 0, data.azimuth)        
+        # Record the neighbor distance in my own knowledge table
+        write_knowledge(knowledge, rid, 1, data.distance)   
+        # Set neighbor as visible
+        write_knowledge(knowledge, rid, 2, 1)  
+		# Set neighbor as same type
+        write_knowledge(knowledge, rid, 3, 1)     
+    })  
 }
 
 # Rads to degrees
@@ -141,6 +90,87 @@ function oppdir(azimuth) {
 }
 	
 
+
+
+
+### Fonctions pour les chiens ###
+# Mouvement des chiens (marche aleatoire pour le moment)
+function d_move() {
+	var maxDist = 0
+	var maxAngle = 0
+	var counter = 0
+	while (counter < 8) {
+		if ((proximity[counter].angle < 100*math.pi/180) and (proximity[counter].angle > -100*math.pi/180) and (proximity[counter].value > maxDist)) {
+			maxDist = proximity[counter].value
+			maxAngle = proximity[counter].angle
+		}
+		counter = counter + 1
+	}
+	if (maxDist > 0) {
+		if (maxAngle > 0) {
+			set_wheels(10.0,0.0)
+		}
+		else {
+			set_wheels(0.0,10.0)
+		}
+	}
+	else {
+		set_wheels(10.0,10.0)
+	}
+}
+
+### Fonctions pour les moutons ###
+# Juste un test de reconnaissance de voisins
+function beh() {
+	var dogs = 0
+	dogs =  neighbors.nonkin().count()
+	if (dogs != 0) {
+		log("BEEEEEEH il y a ", dogs," loooooup!")
+	}
+}
+
+# Fonction de mouvement du mouton (comportement)
+function s_move() {
+	# calcul de l'angle de direction à prendre (attention il y a un probleme sur l'angle allande de -pi à pi)
+	direction = 0
+	neighbors.foreach(function(rid,data) {
+		if (read_knowledge(knowledge, rid, 2) == 1) {
+			if ((read_knowledge(knowledge, rid, 3) == 1) and (read_knowledge(knowledge, rid, 1) > 50)) {
+				direction = direction + read_knowledge(knowledge, rid, 0)	
+			}
+			if ((read_knowledge(knowledge, rid, 3) == 1) and (read_knowledge(knowledge, rid, 1) < 50)) {
+				direction = direction + oppdir(read_knowledge(knowledge, rid, 0))	
+			}
+			if (read_knowledge(knowledge, rid, 3) == 0) {
+				direction = direction + oppdir(read_knowledge(knowledge, rid, 0))
+			}
+		}
+	})
+
+
+	#Ancienne version sans la table
+	#neighbors_dog =  neighbors.nonkin()
+	#neighbors_sheep =  neighbors.kin()
+	#neighbors_sheep.foreach(function(rid, data) {
+	#	direction = direction + data.azimuth
+	#})
+	#log(id, ": ", direction)
+	#neighbors_dog.foreach(function(rid, data) {
+	#	direction = direction + oppdir(data.azimuth)
+	#})
+	
+   	if (neighbors.count() != 0) {
+		direction = direction / neighbors.count()
+		log(direction)
+		gotop(10.0,direction)
+	}
+	else {
+		set_wheels(0.0,0.0)
+	}
+}
+
+
+
 ### Fonctionnement Global ###
 # Executed at init time
 function init() {
@@ -155,7 +185,8 @@ function init() {
 
 # Executed every time step
 function step() {
-	check_your_neighborhood()
+	dog.exec(function() { check_your_neighborhood() })
+	sheep.exec(function() { check_your_neighborhood() })
 	#table_print(knowledge)
 	dog.exec(function() { d_move() }) 
 	sheep.exec(function() { s_move() })	
