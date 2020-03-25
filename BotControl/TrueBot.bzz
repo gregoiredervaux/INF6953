@@ -134,7 +134,7 @@ function s_move() {
 	# calcul de l'angle de direction à prendre (attention il y a un probleme sur l'angle allande de -pi à pi)
 	direction = 0
 	neighbors.foreach(function(rid,data) {
-		if (read_knowledge(knowledge, rid, 2) == 1) {
+		if (read_knowledge(knowledge, rid, 1) <100) {
 			if ((read_knowledge(knowledge, rid, 3) == 1) and (read_knowledge(knowledge, rid, 1) > 50)) {
 				direction = direction + read_knowledge(knowledge, rid, 0)	
 			}
@@ -179,17 +179,17 @@ function init() {
 	# On initialise 2 swarm (dog et sheep) pour différencier deux comportements
 	dog = swarm.create(0)
 	sheep = swarm.create(1)
-	dog.select(id == 0 or id == 1100)
-	sheep.select(id != 0 and id != 1100)
+	dog.select(id == 10000 or id == 1100)
+	sheep.select(id != 10000 and id != 1100)
 }
 
 # Executed every time step
 function step() {
 	dog.exec(function() { check_your_neighborhood() })
 	sheep.exec(function() { check_your_neighborhood() })
-	#table_print(knowledge)
-	dog.exec(function() { d_move() }) 
-	sheep.exec(function() { s_move() })	
+	table_print(knowledge)
+	#dog.exec(function() { d_move() }) 
+	#sheep.exec(function() { s_move() })	
 }
 
 # Executed once when the robot (or the simulator) is reset.
