@@ -158,64 +158,61 @@ function beh() {
 function s_move(threshold) {
 	# calcul de l'angle de direction à prendre 
 	log("______________________", id)
-	var mass_center = vec2_new_polar(0,0)
-	var dog_vector = vec2_new_polar(0,0)
-  var obstacle_vector = vec2_new_polar(0,0)
 
-	neighbors.foreach(function(rid,data) {
+	# if it's too close, we execute the avoidance algorihtme
+	var counter = 0
+  var obstacle_vector = vec2_new_polar(0,0)
+	# for each captor, we check if there is detection
+	while (counter < 8) {
+			var frontValue = proximity[counter].value
+			var frontAngle = proximity[counter].angle
+			if (frontValue != 0) {
+					# We sum all the vector define by the value and angle of detection.
+					# it will become a good indicator of where is the closest part of the obstacle
+					# because we ponderate the angle of detection by his distance to the agent
+					vec2_sum(obstacle_vector, vec2_new_polar(frontValue,frontAngle))
+			}			
+			counter = counter + 1
+	}
+	if ((obstacle_vector.x != 0) or (obstacle_vector.y != 0)) {
+			gotop(10.0, vec2_angle(obstacle_vector) + math.pi)
+		# if there is no obstacle, we move further close from the center of the herd or away of the dog
+	} else {
+
+		var mass_center = vec2_new_polar(0,0)
+		var dog_vector = vec2_new_polar(0,0)
+
+		neighbors.foreach(function(rid,data) {
 		# if it's visible
-		if (read_knowledge(knowledge, rid, 2) == 1) {
+			if (read_knowledge(knowledge, rid, 2) == 1) {
 			# define the local vector to the robot targeted
-			var rb_vct = vec2_new_polar(read_knowledge(knowledge, rid, 1), read_knowledge(knowledge, rid, 0))
+				var rb_vct = vec2_new_polar(read_knowledge(knowledge, rid, 1), read_knowledge(knowledge, rid, 0))
 			# if it's a sheep
-			if (read_knowledge(knowledge, rid, 3) == 1) {				
+				if (read_knowledge(knowledge, rid, 3) == 1) {				
 				# if it close enoutgh to be consider inside the same herd
-				if (read_knowledge(knowledge, rid, 1) <= threshold) {
+					if (read_knowledge(knowledge, rid, 1) <= threshold) {
 					# we determine the average vector to the sheeps, it's the center of the herd
-					vec2_sum(mass_center, rb_vct)
-				}
-				if (read_knowledge(knowledge, rid, 1) <= 25) {
-				# if it's too close, we execute the avoidance algorihtme
-					var counter = 0
-					# for each captor, we check if there is detection
-					while (counter < 8) {
-						var frontValue = proximity[counter].value
-						var frontAngle = proximity[counter].angle
-							if (frontValue != 0) {
-						# We sum all the vector define by the value and angle of detection.
-						# it will become a good indicator of where is the closest part of the obstacle
-						# because we ponderate the angle of detection by his distance to the agent
-								vec2_sum(obstacle_vector, vec2_new_polar(frontValue,frontAngle))
-							}			
-							counter = counter + 1
+						vec2_sum(mass_center, rb_vct)
 					}
 				}
 			}
-		}
 		 # if it's the dog, we determine his local vector
-		if ((read_knowledge(knowledge, rid, 3) == 0) and (read_knowledge(knowledge, rid, 1) <= threshold)) {
-			local_dog_vect = vec2_new_polar(read_knowledge(knowledge, rid, 1), read_knowledge(knowledge, rid, 0))
-			vec2_sum(dog_vector, local_dog_vect)
-		}
-	})
+			if ((read_knowledge(knowledge, rid, 3) == 0) and (read_knowledge(knowledge, rid, 1) <= threshold)) {
+				local_dog_vect = vec2_new_polar(read_knowledge(knowledge, rid, 1), read_knowledge(knowledge, rid, 0))
+				vec2_sum(dog_vector, local_dog_vect)
+			}
+		})
 	
-	var direction = {}; direction.x = 0.0; direction.y = 0.0
-	
-	# if there is neighbors
-  if (neighbors.count() != 0) {
-		# if there is a obstacle, we move away from it
-		if ((obstacle_vector.x != 0) or (obstacle_vector.y != 0)) {
-						gotop(10.0, vec2_angle(obstacle_vector) + math.pi)
-		# if there is no obstacle, we move further close from the center of the herd or away of the dog
-		} else {
-		
+		var direction = {}; direction.x = 0.0; direction.y = 0.0
+		# if there is neighbors
+  	if (neighbors.count() != 0) {
 			# we determine the averga evector from the center of the herd and the wolf to get a natural behavior from the sheep,
 			# he want's to get away from the dog, but stay with his herd.
 			log("test: dog_vect x:", dog_vector.x, " y: ", dog_vector.y)
 			log("test: mass_center x:", mass_center.x, " y: ", mass_center.y)		
 
 			if (vec2_length(dog_vector) != 0) {
-				var escape_dog = vec2_new_polar( vec2_length(mass_center) ^ 2 / vec2_length(dog_vector), 							vec2_angle(dog_vector) + math.pi)
+				var escape_dog = vec2_new_polar( 5 * vec2_length(mass_center) ^ 2 / vec2_length(dog_vector), 							vec2_angle(dog_vector) + math.pi)
 				log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))					
 				vec2_sum(direction, escape_dog)
 			}
@@ -223,11 +220,12 @@ function s_move(threshold) {
 			vec2_sum(direction, mass_center)
 
 			gotop(10.0, vec2_angle(direction))
-		} 		
-	} else {
-		random_move()
+		} else {
+			random_move()
+		}
+
+		log("___direction: x:", direction.x," y:", direction.y)
 	}
-	log("___direction: x:", direction.x," y:", direction.y)
 }
 
 
