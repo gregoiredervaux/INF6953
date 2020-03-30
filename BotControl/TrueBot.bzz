@@ -211,15 +211,15 @@ function s_move(threshold) {
 		
 			# we determine the averga evector from the center of the herd and the wolf to get a natural behavior from the sheep,
 			# he want's to get away from the dog, but stay with his herd.
-			# log("test: direction x:", direction.x, " y: ", direction.y)
 			log("test: dog_vect x:", dog_vector.x, " y: ", dog_vector.y)
 			log("test: mass_center x:", mass_center.x, " y: ", mass_center.y)		
 
-			# var escape_dog = vec2_new_polar( vec2_length(mass_center) / vec2_length(dog_vector), vec2_angle(dog_vector) + math.pi)
-			var escape_dog = vec2_new_polar( 1 / vec2_length(dog_vector), vec2_angle(dog_vector) + math.pi)
-			log("escape_dog: escape_dog x:", escape_dog.x, " y: ", escape_dog.y)					
+			if (vec2_length(dog_vector) != 0) {
+				var escape_dog = vec2_new_polar( vec2_length(mass_center) ^ 2 / vec2_length(dog_vector), 							vec2_angle(dog_vector) + math.pi)
+				log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))					
+				vec2_sum(direction, escape_dog)
+			}
 			
-			# vec2_sum(direction, escape_dog)
 			vec2_sum(direction, mass_center)
 
 			gotop(10.0, vec2_angle(direction))
