@@ -176,7 +176,7 @@ function s_move(threshold) {
 	}
 	if ((obstacle_vector.x != 0) or (obstacle_vector.y != 0)) {
 			gotop(10.0, vec2_angle(obstacle_vector) + math.pi)
-		# if there is no obstacle, we move further close from the center of the herd or away of the dog
+	# if there is no obstacle, we move further close from the center of the herd or away of the dog
 	} else {
 
 		var mass_center = vec2_new_polar(0,0)
@@ -206,24 +206,24 @@ function s_move(threshold) {
 		var direction = {}; direction.x = 0.0; direction.y = 0.0
 		# if there is neighbors
   	if (neighbors.count() != 0) {
-			# we determine the averga evector from the center of the herd and the wolf to get a natural behavior from the sheep,
-			# he want's to get away from the dog, but stay with his herd.
+			# we determine the average  vector from the center of the herd and the wolf to get a natural behavior from the sheep,
+			# he wants to get away from the dog, but stay with his herd.
 			log("test: dog_vect x:", dog_vector.x, " y: ", dog_vector.y)
 			log("test: mass_center x:", mass_center.x, " y: ", mass_center.y)		
 
+			# if we see the dog, we get away from it, by adding the opposite vector to the direction vector
 			if (vec2_length(dog_vector) != 0) {
+				# the more the dog is near, the more the sheep will get away by using the inverse of the length of the dog vector
 				var escape_dog = vec2_new_polar( 5 * vec2_length(mass_center) ^ 2 / vec2_length(dog_vector), 							vec2_angle(dog_vector) + math.pi)
 				log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))					
 				vec2_sum(direction, escape_dog)
 			}
-			
 			vec2_sum(direction, mass_center)
-
 			gotop(10.0, vec2_angle(direction))
+
 		} else {
 			random_move()
 		}
-
 		log("___direction: x:", direction.x," y:", direction.y)
 	}
 }
