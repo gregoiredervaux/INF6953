@@ -92,6 +92,19 @@ function vec2_sum(v1, v2) {
 	 v1.x = v1.x + v2.x
    v1.y = v1.y + v2.y
 }
+
+function vec2_diff(v1, v2) {
+	 v1.x = v1.x - v2.x
+   v1.y = v1.y - v2.y
+}
+
+function vec2_sum_r(v1, v2) {
+	return {.x = v1.x + v2.x, .y =  v1.y + v2.y}
+}
+
+function vec2_diff_r(v1, v2) {
+	 return {.x = v1.x - v2.x, .y =  v1.y - v2.y}
+}
  
 # Getting the angle of a 2D vector
 function vec2_angle(v) {
@@ -137,9 +150,60 @@ function random_move() {
 	}
 }
 
+function mean(points) {
+	mean = {.x = 0, .y = 0}
+	points.foreach(function(rid, data) {
+		vec2_sum(mean, data)
+	}
+	return mean / size(points)
+}
+
+function kmean(nb_cluster){
+	
+	var points = {}
+
+	neighbors.foreach(function(rid,data) {
+		# if it's visible
+		if (read_knowledge(knowledge, rid, 2) == 1) {
+			# if it's a sheep
+			if (read_knowledge(knowledge, rid, 3) == 1) {
+				var rb_vct = vec2_new_polar(read_knowledge(knowledge, rid, 1), read_knowledge(knowledge, rid, 0))
+				points[rid] = rb_vct
+			}
+		}
+	}
+	
+	i = 0
+	center = {}
+	clusters = {}
+	while (i < nb_cluster) {
+		clusters[i] = {}
+		center[i] = points[i]
+		i = i + 1
+	}
+
+	post_center = {}
+	difference_center = inf
+	while (difference_center > 0.5) {
+
+		points.foreach(function(id,pt) {
+			distance = {}
+			while (i < nb_cluster) {
+				distance[i] = vec2_length(vec2_diff_r(center[i], pt))
+				i = i + 1
+			}
+			while ( i < nb_cluster) {
+				
+				i = i + 1
+			}
+		}
+	}
+}
+
 ### Fonctions pour les chiens ###
 # Mouvement des chiens (marche aleatoire pour le moment)
 function d_move() {
+	clusters = kmean()
 	random_move()
 }
 
