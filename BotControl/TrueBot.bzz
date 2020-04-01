@@ -49,7 +49,7 @@ function check_your_neighborhood() {
 		# Set neighbor as different type
         write_knowledge(knowledge, rid, 3, 0)     
     })  
-	neighbors.kin().foreach( function(rid, data) {               
+		neighbors.kin().foreach( function(rid, data) {               
         # For each kin neighbor:       
         # Record the neighbor azimuth in my own knowledge table
         write_knowledge(knowledge, rid, 0, data.azimuth)        
@@ -60,6 +60,24 @@ function check_your_neighborhood() {
 		# Set neighbor as same type
         write_knowledge(knowledge, rid, 3, 1)     
     })  
+}
+
+function vec2_str(v) {
+	return string.concat("v: x=", string.tostring(v.x), " y=", string.tostring(v.y))
+}
+
+function table_print(t) {
+  foreach(t, function(key, value) {
+		log("test")
+		log("test: ", key)
+    log("test:", key, " -> ", value)
+  })
+}
+
+function table_v_print(t) {
+  foreach(t, function(key, value) {
+      log(key, " -> ", vec2_str(value))
+    })
 }
 
 # Rads to degrees
@@ -150,60 +168,109 @@ function random_move() {
 	}
 }
 
+function max(distance) {
+	var len =  size(distance)
+	max = 0
+	i = 0
+	while (i < len) {
+		if (distance [i] > max) {
+			max = distance[i]
+		}
+	i = i + 1
+	}
+	return max
+}
+
 function mean(points) {
 	mean = {.x = 0, .y = 0}
 	points.foreach(function(rid, data) {
 		vec2_sum(mean, data)
-	}
+	})
 	return mean / size(points)
 }
 
 function kmean(nb_cluster){
-	
-	var points = {}
 
+	log("nb_cluster: ", nb_cluster)
+	var points = {}
+	var robots = {}
+	
+	rbt_counter = 0
 	neighbors.foreach(function(rid,data) {
+	
+	log("robot ", rid, ": ",
+        "distance  = ", data.distance, ", ",
+        "azimuth   = ", data.azimuth, ", ",
+        "elevation = ", data.elevation)
+
 		# if it's visible
 		if (read_knowledge(knowledge, rid, 2) == 1) {
+			log("it's a visible")
 			# if it's a sheep
-			if (read_knowledge(knowledge, rid, 3) == 1) {
+			if (read_knowledge(knowledge, rid, 3) == 0) {
+				log("it's a sheep")
+				robots[rbt_counter] = rid
+				log("le ", rbt_counter, " robot d'id: ", rid)
+				rbt_counter = rbt_counter + 1
 				var rb_vct = vec2_new_polar(read_knowledge(knowledge, rid, 1), read_knowledge(knowledge, rid, 0))
 				points[rid] = rb_vct
 			}
 		}
-	}
-	
+	})
+
+	log("points: ")
+	table_v_print(points)
+
 	i = 0
 	center = {}
 	clusters = {}
 	while (i < nb_cluster) {
 		clusters[i] = {}
-		center[i] = points[i]
+		center[i] = points[robots[i]]
 		i = i + 1
 	}
+	
+	log("centers: ")
+	table_v_print(center)
+
+	log("clusters: ")
+	table_print(clusters)
+
+	log("debut boucle while")
 
 	post_center = {}
-	difference_center = inf
+	difference_center = 1000.0
 	while (difference_center > 0.5) {
 
-		points.foreach(function(id,pt) {
-			distance = {}
-			while (i < nb_cluster) {
-				distance[i] = vec2_length(vec2_diff_r(center[i], pt))
-				i = i + 1
-			}
-			while ( i < nb_cluster) {
-				
-				i = i + 1
-			}
-		}
+		foreach(points, function(id,pt) {
+
+      log("test du pt: ", id, " x:", pt.x, " y:", pt.y)
+      distance = {}
+      i = 0
+      while (i < nb_cluster) {
+        distance[i] = vec2_length(vec2_diff_r(center[i], pt))
+        log("distance du ", i, " cluster au pt: ", distance[i])
+        i = i + 1
+      }
+      max_distance = max(distance)
+      log("max distance: ", max_distance)
+      i = 0
+      while ( i < nb_cluster) {
+        if(distance[i] == max_distance) {
+          log("ajout du point ", id, " au cluster ",i)
+          cluster[i][id] = points[id]
+        }
+        i = i + 1
+      }
+    })
 	}
+	return 0
 }
 
 ### Fonctions pour les chiens ###
 # Mouvement des chiens (marche aleatoire pour le moment)
 function d_move() {
-	clusters = kmean()
+	cluster = kmean(2)
 	random_move()
 }
 
@@ -221,7 +288,7 @@ function beh() {
 # Fonction de mouvement du mouton (comportement)
 function s_move(threshold) {
 	# calcul de l'angle de direction à prendre 
-	log("______________________", id)
+	# log("______________________", id)
 
 	# if it's too close, we execute the avoidance algorihtme
 	var counter = 0
@@ -272,14 +339,14 @@ function s_move(threshold) {
   	if (neighbors.count() != 0) {
 			# we determine the average  vector from the center of the herd and the wolf to get a natural behavior from the sheep,
 			# he wants to get away from the dog, but stay with his herd.
-			log("test: dog_vect x:", dog_vector.x, " y: ", dog_vector.y)
-			log("test: mass_center x:", mass_center.x, " y: ", mass_center.y)		
+			# log("test: dog_vect x:", dog_vector.x, " y: ", dog_vector.y)
+			# log("test: mass_center x:", mass_center.x, " y: ", mass_center.y)		
 
 			# if we see the dog, we get away from it, by adding the opposite vector to the direction vector
 			if (vec2_length(dog_vector) != 0) {
 				# the more the dog is near, the more the sheep will get away by using the inverse of the length of the dog vector
 				var escape_dog = vec2_new_polar( 5 * vec2_length(mass_center) ^ 2 / vec2_length(dog_vector), 							vec2_angle(dog_vector) + math.pi)
-				log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))					
+				# log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))					
 				vec2_sum(direction, escape_dog)
 			}
 			vec2_sum(direction, mass_center)
@@ -288,7 +355,7 @@ function s_move(threshold) {
 		} else {
 			random_move()
 		}
-		log("___direction: x:", direction.x," y:", direction.y)
+		# log("___direction: x:", direction.x," y:", direction.y)
 	}
 }
 
@@ -309,9 +376,9 @@ function init() {
 # Executed every time step
 function step() {
 	threshold = 150
-	dog.exec(function() { check_your_neighborhood() })
 	sheep.exec(function() { check_your_neighborhood() })
-	#table_print(knowledge)
+	dog.exec(function() { check_your_neighborhood() })
+
 	dog.exec(function() { d_move() }) 
 	sheep.exec(function() { s_move(150) })	
 }

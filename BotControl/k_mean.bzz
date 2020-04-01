@@ -1,0 +1,83 @@
+function kmean(nb_cluster){
+
+	var points = {}
+
+	neighbors.foreach(function(rid,data) {
+		# if it's visible
+		if (read_knowledge(knowledge, rid, 2) == 1) {
+			# if it's a sheep
+			if (read_knowledge(knowledge, rid, 3) == 1) {
+				var rb_vct = vec2_new_polar(read_knowledge(knowledge, rid, 1), read_knowledge(knowledge, rid, 0))
+				# points[rid] = rb_vct.x
+			}
+		}
+	})
+
+	log("points: ",  size(points))
+
+	i = 0
+	center = {}
+	clusters = {}
+	while (i < nb_cluster) {
+		clusters[i] = {}
+		center[i] = points[i]
+		i = i + 1
+	}
+
+	log("center/ cluster: ",  size(center), " / ", size(clusters))
+
+	post_center = {}
+	difference_center = inf
+	while (difference_center > 0.5) {
+
+    points.foreach(function(id,pt) {
+
+      log("test du pt: ", id, " x:", pt.x, " y:", pt.y)
+      distance = {}
+      i = 0
+      while (i < nb_cluster) {
+        distance[i] = vec2_length(vec2_diff_r(center[i], pt))
+        log("distance du ", i, " cluster au pt: ", distance[i])
+        i = i + 1
+      }
+      max_distance = max(distance)
+      log("max distance: ", max_distance)
+      i = 0
+      while ( i < nb_cluster) {
+        if(distance[i] == max_distance) {
+          log("ajout du point ", i, " au cluster",i)
+          cluster[i][id] = points[id]
+        }
+        i = i + 1
+      }
+    })
+
+		log("cluster: ",  size(cluster))
+		log("distance: ",  size(distance))
+		log("max distance", max_distance)
+
+		i = 0
+		while ( i < nb_cluster) {
+			post_center[i] = mean(cluster[i])
+			i = i + 1
+		}
+
+		log("post_center: ",  size(post_center))
+
+		difference_center = 0
+		i = 0
+		while ( i < nb_cluster) {
+			difference_center = difference_center + vec2_length(post_center[i] - center[i])
+			i = i + 1
+		}
+
+		log("difference_center: ",  difference_center)
+
+		while ( i < nb_cluster) {
+			center[i] = post_center[i]
+			i = i + 1
+		}
+
+		log("center: ",  size(center))
+	}
+}
