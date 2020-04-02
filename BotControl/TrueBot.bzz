@@ -167,15 +167,12 @@ function random_move() {
 }
 
 function maximun(distance) {
-	var len =  size(distance)
 	max = 0
-	i = 0
-	while (i < len) {
-		if (distance [i] > max) {
-			max = distance[i]
+	foreach(distance, function(key, value) {
+		if (value > max ) {
+			max = value
 		}
-	i = i + 1
-	}
+	})
 	return max
 }
 
@@ -190,36 +187,34 @@ function minimum(distance) {
 }
 
 function mean(points) {
-	mean = {.x = 0, .y = 0}
-	points.foreach(function(rid, data) {
-		vec2_sum(mean, data)
+	mean_vec = {.x = 0, .y = 0}
+	foreach(points, function(rid, data) {
+		vec2_sum(mean_vec, data)
 	})
-	return mean / size(points)
+	return {.x = mean_vec.x / size(points), .y = mean_vec.y / size(points)}
 }
 
 function kmean(nb_cluster){
 
-	log("nb_cluster: ", nb_cluster)
+	# log("nb_cluster: ", nb_cluster)
 	points = {}
 	robots = {}
 
 	rbt_counter = 0
 	neighbors.foreach(function(rid,data) {
 
-	log("robot ", rid, ": ",
-        "distance  = ", data.distance, ", ",
-        "azimuth   = ", data.azimuth, ", ",
-        "elevation = ", data.elevation)
+	 # log("robot ", rid, ": ",
+   #     "distance  = ", data.distance, ", ",
+   #     "azimuth   = ", data.azimuth, ", ",
+   #     "elevation = ", data.elevation)
 
 		# if it's visible
 		if (read_knowledge(knowledge, rid, 2) == 1) {
-			log("it's a visible")
 			# if it's a sheep
 			if (read_knowledge(knowledge, rid, 3) == 0) {
 
-				log("it's a sheep")
 				robots[rbt_counter] = rid
-				log("le ", rbt_counter, " robot d'id: ", rid)
+				# log("le ", rbt_counter, " robot d'id: ", rid)
 				rbt_counter = rbt_counter + 1
 				var rb_vct = vec2_new_polar(read_knowledge(knowledge, rid, 1), read_knowledge(knowledge, rid, 0))
 				points[rid] = rb_vct
@@ -227,11 +222,11 @@ function kmean(nb_cluster){
 		}
 	})
 
-	log("points: ")
-	table_v_print(points)
+	# log("points: ")
+	# table_v_print(points)
 
-	log("robot id")
-	table_print(robots)
+	# log("robot id")
+	# table_print(robots)
 
 	i = 0
 	center = {}
@@ -243,13 +238,10 @@ function kmean(nb_cluster){
 		i = i + 1
 	}
 
-	log("centers: ")
-	table_v_print(center)
+	# log("centers: ")
+	# table_v_print(center)
 
-	log("debut boucle while")
-
-	post_center = {}
-	difference_center = 1000.0
+	# log("debut boucle while")
 
 	counter_dist = 0
 	distance_tot = 0
@@ -258,29 +250,29 @@ function kmean(nb_cluster){
 		distance_tot = 0
 		foreach(points, function(id,pt) {
 
-      log("test du pt: ", id, " x:", pt.x, " y:", pt.y)
+      # log("test du pt: ", id, " x:", pt.x, " y:", pt.y)
       var distance = {}
       i = 0
       while (i < nb_cluster) {
         distance[i] = vec2_length(vec2_diff_r(center[i], pt))
-        log("distance du ", i, " cluster au pt: ", distance[i])
+        # log("distance du ", i, " cluster au pt: ", distance[i])
         i = i + 1
       }
-			log("distance: ")
-			table_print(distance)
+			# log("distance: ")
+			# table_print(distance)
 
 			min_distance = minimum(distance)
-			log("min distance: ")
-      log(min_distance)
+			# log("min distance: ")
+      # log(min_distance)
 
 			i = 0
       while ( i < nb_cluster) {
         if(distance[i] == min_distance) {
-          log("ajout du point ", id, " au cluster ",i)
+          # log("ajout du point ", id, " au cluster ",i)
 					distance_tot = 	distance_tot + min_distance
           cluster[i][id] = pt
-					log("cluster ", i, " : ")
-					table_v_print(cluster[i])
+					# log("cluster ", i, " : ")
+					# table_v_print(cluster[i])
         }
         i = i + 1
       }
@@ -294,20 +286,18 @@ function kmean(nb_cluster){
 ### Fonctions pour les chiens ###
 # Mouvement des chiens (marche aleatoire pour le moment)
 function d_move() {
-	if (neighbors.count() != 0) {
+	if (neighbors.count() > 4) {
 		nb_cluster = 2
   	distance = inf
 		results = {}
 		while (nb_cluster <= 4 and distance > 500) {
 			results= kmean(nb_cluster)
-			results_3 = kmean(3)
 			log("distance", results.distance)
-			i = 0
-			while ( i < nb_cluster) {
+			foreach(results.clusters, function (i, cluster) {
 				log("cluster ", i)
 				table_v_print(results.clusters[i])
-				i = i + 1
-			}
+			})
+			
 			nb_cluster = nb_cluster + 1
 			distance = results.distance
 		}
@@ -315,17 +305,11 @@ function d_move() {
 		# TODO comportement a partir des clusters
 		log("computation des centres de masses")
 		clusters = results.clusters
-		i = 0
-		while ( i < size(clusters)) {
-			sum = {.x=0, .y=0}
-			foreach(clusters[i], function(id, vector) {
-				vec2_sum(sum, vector)
-			})
-			clusters[i]["mass_center"] = {.x = sum.x / size(clusters[i]), .y = sum.y / size(clusters[i]) }
+		foreach(clusters, function (i, cluster) {
+			clusters[i]["mass_center"] = mean(clusters[i])
 			log("cluster ", i)
 			table_v_print(results.clusters[i])
-			i = i + 1
-		}
+		})
 	} else {
 	random_move()
 	}
