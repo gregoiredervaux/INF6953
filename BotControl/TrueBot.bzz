@@ -294,15 +294,41 @@ function kmean(nb_cluster){
 ### Fonctions pour les chiens ###
 # Mouvement des chiens (marche aleatoire pour le moment)
 function d_move() {
-	results_2 = kmean(2)
-	results_3 = kmean(3)
-	log("distance2 ", results_2.distance)
-	log("distance3 ", results_3.distance)
-	log("cluster2_0")
-	table_v_print(results_2.clusters[0])
-	log("cluster2_1")
-	table_v_print(results_2.clusters[1])
+	if (neighbors.count() != 0) {
+		nb_cluster = 2
+  	distance = inf
+		results = {}
+		while (nb_cluster <= 4 and distance > 500) {
+			results= kmean(nb_cluster)
+			results_3 = kmean(3)
+			log("distance", results.distance)
+			i = 0
+			while ( i < nb_cluster) {
+				log("cluster ", i)
+				table_v_print(results.clusters[i])
+				i = i + 1
+			}
+			nb_cluster = nb_cluster + 1
+			distance = results.distance
+		}
+
+		# TODO comportement a partir des clusters
+		log("computation des centres de masses")
+		clusters = results.clusters
+		i = 0
+		while ( i < size(clusters)) {
+			sum = {.x=0, .y=0}
+			foreach(clusters[i], function(id, vector) {
+				vec2_sum(sum, vector)
+			})
+			clusters[i]["mass_center"] = {.x = sum.x / size(clusters[i]), .y = sum.y / size(clusters[i]) }
+			log("cluster ", i)
+			table_v_print(results.clusters[i])
+			i = i + 1
+		}
+	} else {
 	random_move()
+	}
 }
 
 
