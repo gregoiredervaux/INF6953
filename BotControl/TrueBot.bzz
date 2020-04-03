@@ -36,10 +36,7 @@ function dtor(d) {
 
 # setting a 2D vector from length and angle
 function vec2_new_polar(length, angle) {
-   var vec2 = {}
-   vec2.x = length * math.cos(angle)
-   vec2.y = length * math.sin(angle)
-   return vec2
+   return {.x = length * math.cos(angle), .y = length * math.sin(angle)}   
 }
 
 # Summing two 2D vectors (v1 = v1 + v2)
@@ -48,15 +45,18 @@ function vec2_sum(v1, v2) {
    v1.y = v1.y + v2.y
 }
 
+# Difference for two 2D vector (v1 = v1 - v2)
 function vec2_diff(v1, v2) {
 	 v1.x = v1.x - v2.x
    v1.y = v1.y - v2.y
 }
 
+# Difference for two 2D vector with return
 function vec2_sum_r(v1, v2) {
 	return {.x = v1.x + v2.x, .y =  v1.y + v2.y}
 }
 
+# Summing two 2D vectors with return
 function vec2_diff_r(v1, v2) {
 	 return {.x = v1.x - v2.x, .y =  v1.y - v2.y}
 }
@@ -66,22 +66,14 @@ function vec2_angle(v) {
    return math.atan(v.y, v.x)
 }
 
+# Getting the length of a 2D vector
 function vec2_length(v) {
 	return math.sqrt((v.x * v.x) + (v.y * v.y))
 }
 
-# Calculate the opposite direction (verifier pour angle = 0)
-function oppdir(azimuth) {
-	if (azimuth > 0) {
-		return (azimuth - math.pi)
-	}
-	else {
-		return (azimuth + math.pi)
-	}
-}
+######################### function for tables #########################
 
-######################### function list of vectors #########################
-
+# Find the maximal value of a table
 function maximun(distance) {
 	max = 0
 	foreach(distance, function(key, value) {
@@ -92,6 +84,7 @@ function maximun(distance) {
 	return max
 }
 
+# Find the minimal value of a table
 function minimum(distance) {
 	min = inf
 	foreach(distance, function(key, value) {
@@ -102,6 +95,9 @@ function minimum(distance) {
 	return min
 }
 
+######################### function tables of vectors #########################
+
+# find the mean value of a table of vector
 function mean(points) {
 	mean_vec = {.x = 0, .y = 0}
 	foreach(points, function(rid, data) {
@@ -137,6 +133,8 @@ function random_move() {
 	}
 }
 
+# K-mean aglorithme for a robot on the non-kin
+# return the clusters and the total distance of all point from the center of the cluster
 function kmean(nb_cluster){
 
 	# log("nb_cluster: ", nb_cluster)
@@ -150,7 +148,6 @@ function kmean(nb_cluster){
    #     "distance  = ", data.distance, ", ",
    #     "azimuth   = ", data.azimuth, ", ",
    #     "elevation = ", data.elevation)
-
 
 		robots[rbt_counter] = rid
 		# log("le ", rbt_counter, " robot d'id: ", rid)
@@ -222,8 +219,8 @@ function kmean(nb_cluster){
 ### Fonctions pour les chiens ###
 # Mouvement des chiens (marche aleatoire pour le moment)
 function d_move() {
-	if (neighbors.count() > 4) {
-		nb_cluster = 2
+	if (neighbors.count() > 2) {
+		nb_cluster = 1
   	distance = inf
 		results = {}
 		while (nb_cluster <= 4 and distance > 500) {
@@ -251,22 +248,11 @@ function d_move() {
 	}
 }
 
-
-### Fonctions pour les moutons ###
-# Juste un test de reconnaissance de voisins
-function beh() {
-	var dogs = 0
-	dogs =  neighbors.nonkin().count()
-	if (dogs != 0) {
-		log("BEEEEEEH il y a ", dogs," loooooup!")
-	}
-}
-
 # Fonction de mouvement du mouton (comportement)
 function s_move(threshold) {
 	# log("threshold: ", threshold)
 	# calcul de l'angle de direction à prendre
-	# log("______________________", id)
+	log("______________________", id)
 
 	# if it's too close, we execute the avoidance algorihtme
 	var counter = 0
@@ -307,14 +293,14 @@ function s_move(threshold) {
 			# we determine the average  vector from the center of the herd and the wolf to get a natural behavior from the sheep,
 			# he wants to get away from the dog, but stay with his herd.
 
-			# log("dog_vect x:", dog_vector.x, " y: ", dog_vector.y)
-			# log("mass_center x:", mass_center.x, " y: ", mass_center.y)
+			log("dog_vect x:", dog_vector.x, " y: ", dog_vector.y)
+			log("mass_center x:", mass_center.x, " y: ", mass_center.y)
 
 			# if we see the dog, we get away from it, by adding the opposite vector to the direction vector
 			if (vec2_length(dog_vector) != 0) {
 				# the more the dog is near, the more the sheep will get away by using the inverse of the length of the dog vector
-				var escape_dog = vec2_new_polar( vec2_length(mass_center) ^ 2 / vec2_length(dog_vector), 							vec2_angle(dog_vector) + math.pi)
-				# log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))
+				var escape_dog = vec2_new_polar( vec2_length(mass_center) ^ 2 / vec2_length(dog_vector), 	vec2_angle(dog_vector) + math.pi)
+				log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))
 				vec2_sum(direction, escape_dog)
 			}
 			if (vec2_length(mass_center) != 0) {
@@ -325,7 +311,7 @@ function s_move(threshold) {
 		} else {
 			random_move()
 		}
-		# log("___direction: x:", direction.x," y:", direction.y)
+		log("___direction: x:", direction.x," y:", direction.y)
 	}
 }
 
