@@ -333,16 +333,14 @@ function s_move(threshold) {
 
 	# if it's too close, we execute the avoidance algorihtme
 	var counter = 0
-  var obstacle_vector = vec2_new_polar(0,0)
+  var obstacle_vector = {.x=0, .y=0}
 	# for each captor, we check if there is detection
 	while (counter < 8) {
-			var frontValue = proximity[counter].value
-			var frontAngle = proximity[counter].angle
 			if (frontValue != 0) {
 					# We sum all the vector define by the value and angle of detection.
 					# it will become a good indicator of where is the closest part of the obstacle
 					# because we ponderate the angle of detection by his distance to the agent
-					vec2_sum(obstacle_vector, vec2_new_polar(frontValue,frontAngle))
+					vec2_sum(obstacle_vector, vec2_new_polar(proximity[counter].value, proximity[counter].angle))
 			}
 			counter = counter + 1
 	}
@@ -351,8 +349,8 @@ function s_move(threshold) {
 	# if there is no obstacle, we move further close from the center of the herd or away of the dog
 	} else {
 
-		var mass_center = vec2_new_polar(0,0)
-		var dog_vector = vec2_new_polar(0,0)
+		var mass_center = {.x=0, .y=0}
+		var dog_vector = {.x=0, .y=0}
 
 		neighbors.foreach(function(rid,data) {
 		# if it's visible
@@ -410,8 +408,8 @@ function init() {
 	# On initialise 2 swarm (dog et sheep) pour différencier deux comportements
 	dog = swarm.create(0)
 	sheep = swarm.create(1)
-	dog.select(id == 0 or id == 1100)
-	sheep.select(id != 0 and id != 1100)
+	dog.select(id == 0 or id == 1 or id == 1100)
+	sheep.select(id != 0 and id != 1 and id != 1100)
 }
 
 # Executed every time step
