@@ -1,16 +1,21 @@
 
 ### BUZZ FUNCTIONS ##
 
+######################### function of log #########################
+
+#vector to string
 function vec2_str(v) {
 	return string.concat("v: x=", string.tostring(v.x), " y=", string.tostring(v.y))
 }
 
+# print a table
 function table_print(t) {
   foreach(t, function(key, value) {
     log(key, " -> ", value)
   })
 }
 
+# print a table of vector
 function table_v_print(t) {
   foreach(t, function(key, value) {
       log(key, " -> ", vec2_str(value))
@@ -27,12 +32,7 @@ function dtor(d) {
    return (math.pi*(d/180.0))
 }
 
-# printing the contents of a table: a custom function
-function table_print(t) {
-  foreach(t, function(key, value) {
-      log(id,": ",key, " -> ", value)
-    })
-}
+######################### function for vectors #########################
 
 # setting a 2D vector from length and angle
 function vec2_new_polar(length, angle) {
@@ -80,30 +80,7 @@ function oppdir(azimuth) {
 	}
 }
 
-# marche aléatoire pour les robots
-function random_move() {
-	var maxDist = 0
-	var maxAngle = 0
-	var counter = 0
-	while (counter < 8) {
-		if ((proximity[counter].angle < 100*math.pi/180) and (proximity[counter].angle > -100*math.pi/180) and (proximity[counter].value > maxDist)) {
-			maxDist = proximity[counter].value
-			maxAngle = proximity[counter].angle
-		}
-		counter = counter + 1
-	}
-	if (maxDist > 0) {
-		if (maxAngle > 0) {
-			set_wheels(10.0,0.0)
-		}
-		else {
-			set_wheels(0.0,10.0)
-		}
-	}
-	else {
-		set_wheels(10.0,10.0)
-	}
-}
+######################### function list of vectors #########################
 
 function maximun(distance) {
 	max = 0
@@ -131,6 +108,33 @@ function mean(points) {
 		vec2_sum(mean_vec, data)
 	})
 	return {.x = mean_vec.x / size(points), .y = mean_vec.y / size(points)}
+}
+
+######################### function for robots #########################
+
+# marche aléatoire pour les robots
+function random_move() {
+	var maxDist = 0
+	var maxAngle = 0
+	var counter = 0
+	while (counter < 8) {
+		if ((proximity[counter].angle < 100*math.pi/180) and (proximity[counter].angle > -100*math.pi/180) and (proximity[counter].value > maxDist)) {
+			maxDist = proximity[counter].value
+			maxAngle = proximity[counter].angle
+		}
+		counter = counter + 1
+	}
+	if (maxDist > 0) {
+		if (maxAngle > 0) {
+			set_wheels(10.0,0.0)
+		}
+		else {
+			set_wheels(0.0,10.0)
+		}
+	}
+	else {
+		set_wheels(10.0,10.0)
+	}
 }
 
 function kmean(nb_cluster){
