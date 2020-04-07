@@ -230,12 +230,22 @@ function kmean(nb_cluster){
 
 ### Fonctions pour les chiens ###
 # Mouvement des chiens (marche aleatoire pour le moment)
-function d_move() {
-	if (custom_count() > 2) {
+function d_move(threshold) {
+
+	vec_obj = {.x = 0, .y = 0}
+	
+	neighbors.nonkin().foreach(function(rid, data) {
+		if (rid == 0) {
+			vec_obj = vec2_new_polar(data.distance, data.azimuth)	
+		}	
+	})
+	log("objectif: ", vec2_str(vec_obj))
+
+	if (custom_count() >= 2 and vec2_length(vec_obj) != 0) {
 		nb_cluster = 1
   	distance = inf
 		results = {}
-		while (nb_cluster <= 4 and distance > 500) {
+		while (nb_cluster <= 4 and distance > 300) {
 			results= kmean(nb_cluster)
 			# log("distance", results.distance)
 			foreach(results.clusters, function (i, cluster) {
@@ -252,9 +262,41 @@ function d_move() {
 		clusters = results.clusters
 		foreach(clusters, function (i, cluster) {
 			clusters[i]["mass_center"] = mean(clusters[i])
-			log("cluster ", i)
-			table_v_print(results.clusters[i])
+			# log("cluster ", i)
+			# table_v_print(results.clusters[i])
 		})
+
+		cluster_cible = clusters[0]
+		foreach(clusters, function (i, cluster) {
+			if (vec2_length(clusters[i]["mass_center"]) < vec2_length(cluster_cible["mass_center"])) {
+				cluster_cible = clusters[i]
+			}
+		})
+		log("cluster_cible: ")
+		table_v_print(cluster_cible)
+
+		if (vec2_length( cluster_cible.mass_center) >= threshold * 1.1) {
+			log("on rejoint le cluster")
+			gotop(10, vec2_angle(cluster_cible.mass_center))
+		}	else {
+			log("on est a portée")
+			ortho = {.x = 0, .y = 0}
+			orhto1 = {.x = cluster_cible.mass_center.y, .y = -cluster_cible.mass_center.x}
+			orhto2 = {.x = -cluster_cible.mass_center.y, .y = cluster_cible.mass_center.x}
+			if (vec2_length(vec2_diff_r(vec_obj, orhto1)) > vec2_length(vec2_diff_r(vec_obj, orhto2))) {
+				ortho = orhto1
+			} else {
+				ortho = orhto2
+			}
+			log("orthogonal", vec2_str(ortho))
+			if (vec_obj.x * cluster_cible.mass_center.y - vec_obj.y * cluster_cible.mass_center.x > 0.0005) {
+				log("pas colinéaire ")
+				gotop(10, vec2_angle(ortho))
+			} else {
+				log("colinéaire !!")				
+				gotop(10, vec2_angle(vec_obj))
+			} 
+		}
 	} else {
 	random_move()
 	}
@@ -265,7 +307,7 @@ function d_move() {
 function s_move(threshold) {
 	# log("threshold: ", threshold)
 	# calcul de l'angle de direction à prendre
-	#log("______________________", id)
+	# log("______________________", id)
 
 	# if it's too close, we execute the avoidance algorihtme
 	var counter = 0
@@ -281,15 +323,15 @@ function s_move(threshold) {
 			counter = counter + 1
 	}
 	if ((obstacle_vector.x != 0) or (obstacle_vector.y != 0)) {
-			gotop(10.0, vec2_angle(obstacle_vector) + math.pi)
+			gotop(10.0, vec2_angle(obstacle_vector) + math.pi / 2)
 	# if there is no obstacle, we move further close from the center of the herd or away of the dog
 	} else {
 
-		var mass_center = {.x=0, .y=0}
-		var dog_vector = {.x=0, .y=0}
+		mass_center = {.x=0, .y=0}
+		dog_vector = {.x=0, .y=0}
 
 		neighbors.kin().foreach(function(rid, data) {
-			if (data.distance <= threshold) {
+			if ((data.distance <= threshold) and (rid != 0)) {
 				vec2_sum(mass_center, vec2_new_polar(data.distance, data.azimuth))
 			}
 		})
@@ -302,18 +344,18 @@ function s_move(threshold) {
 
 		var direction = {.x=0, .y=0}
 		# if there is neighbors
-  	if (custom_count() != 0) {
+  	if (vec2_length(mass_center) != 0 or vec2_length(dog_vector) != 0) {
 			# we determine the average  vector from the center of the herd and the wolf to get a natural behavior from the sheep,
 			# he wants to get away from the dog, but stay with his herd.
 
-			#log("dog_vect x:", dog_vector.x, " y: ", dog_vector.y)
-			#log("mass_center x:", mass_center.x, " y: ", mass_center.y)
+			# log("dog_vect x:", dog_vector.x, " y: ", dog_vector.y)
+			# log("mass_center x:", mass_center.x, " y: ", mass_center.y)
 
 			# if we see the dog, we get away from it, by adding the opposite vector to the direction vector
 			if (vec2_length(dog_vector) != 0) {
 				# the more the dog is near, the more the sheep will get away by using the inverse of the length of the dog vector
 				var escape_dog = vec2_new_polar( vec2_length(mass_center) ^ 2 / vec2_length(dog_vector), 	vec2_angle(dog_vector) + math.pi)
-				#log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))
+				# log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))
 				vec2_sum(direction, escape_dog)
 			}
 			if (vec2_length(mass_center) != 0) {
@@ -324,7 +366,7 @@ function s_move(threshold) {
 		} else {
 			random_move()
 		}
-		#log("___direction: x:", direction.x," y:", direction.y)
+		# log("___direction: x:", direction.x," y:", direction.y)
 	}
 }
 
@@ -359,8 +401,8 @@ function init() {
 
 # Executed every time step
 function step() {
-	threshold = 150
-	dog.exec(function() { d_move() })
+	threshold = 100
+	dog.exec(function() { d_move(threshold) })
 	sheep.exec(function() { s_move(threshold) })
 	
 	
