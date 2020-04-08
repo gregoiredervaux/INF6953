@@ -247,7 +247,7 @@ function d_move(threshold) {
 		results = {}
 		while (nb_cluster <= 4 and distance > 300) {
 			results= kmean(nb_cluster)
-			# log("distance", results.distance)
+			log("distance", results.distance)
 			foreach(results.clusters, function (i, cluster) {
 				#log("cluster ", i)
 				#table_v_print(results.clusters[i])
@@ -262,8 +262,8 @@ function d_move(threshold) {
 		clusters = results.clusters
 		foreach(clusters, function (i, cluster) {
 			clusters[i]["mass_center"] = mean(clusters[i])
-			# log("cluster ", i)
-			# table_v_print(results.clusters[i])
+			log("cluster ", i)
+			table_v_print(results.clusters[i])
 		})
 
 		cluster_cible = clusters[0]
@@ -308,7 +308,7 @@ function d_move(threshold) {
 function s_move(threshold) {
 	# log("threshold: ", threshold)
 	# calcul de l'angle de direction à prendre
-	# log("______________________", id)
+	log("______________________", id)
 
 	# if it's too close, we execute the avoidance algorihtme
 	var counter = 0
@@ -402,6 +402,11 @@ function init() {
 
 # Executed every time step
 function step() {
+
+	# debug.print("test au dessus du robot")
+	# debug.rays.add("255,255,255, x, y, z)
+	# debug.clear()
+
 	threshold = 150
 	dog.exec(function() { d_move(threshold) })
 	sheep.exec(function() { s_move(threshold) })

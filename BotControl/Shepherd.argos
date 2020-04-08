@@ -67,11 +67,18 @@
       <position method="uniform" min="-1,-1,0" max="1,1,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
       <entity quantity="6" max_trials="100">
-        <kheperaiv id="bot">
+        <kheperaiv id="bot" rab_data_size="1000" rab_range="10">
           <controller config="TrueBot" />
         </kheperaiv>
       </entity>
     </distribute>
+
+    <kheperaiv id="bot6" rab_data_size="1000" rab_range="10">
+      <body position="-0.4676,0.27,0" orientation="0,0,0" />
+      <controller config="TrueBot"/>
+    </kheperaiv>
+
+
 
     <!--
     <distribute>
@@ -105,7 +112,7 @@
   <!-- * Media * -->
   <!-- ********* -->
   <media>
-    <range_and_bearing id="rab" />
+    <range_and_bearing id="rab" check_occlusions="false"/>
     <led id="leds" />
   </media>
 
