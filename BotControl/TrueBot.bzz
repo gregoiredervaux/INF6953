@@ -19,6 +19,7 @@ function table_print(t) {
 function table_v_print(t) {
   foreach(t, function(key, value) {
       log(key, " -> ", vec2_str(value))
+			debug.rays.add(255 ,0 , 255, value.x, value.y, 0.0)
     })
 }
 
@@ -125,7 +126,7 @@ function random_move() {
 	var maxAngle = 0
 	var counter = 0
 	while (counter < 8) {
-		if ((proximity[counter].angle < 100*math.pi/180) and (proximity[counter].angle > -100*math.pi/180) and (proximity[counter].value > maxDist)) {
+		if ((proximity[counter].angle < 100 * math.pi / 180) and (proximity[counter].angle > -100*math.pi/180) and (proximity[counter].value > maxDist)) {
 			maxDist = proximity[counter].value
 			maxAngle = proximity[counter].angle
 		}
@@ -262,8 +263,8 @@ function d_move(threshold) {
 		clusters = results.clusters
 		foreach(clusters, function (i, cluster) {
 			clusters[i]["mass_center"] = mean(clusters[i])
-			log("cluster ", i)
-			table_v_print(results.clusters[i])
+			# log("cluster ", i)
+			# table_v_print(results.clusters[i])
 		})
 
 		cluster_cible = clusters[0]
@@ -311,64 +312,108 @@ function s_move(threshold) {
 	log("______________________", id)
 
 	# if it's too close, we execute the avoidance algorihtme
-	var counter = 0
-  var obstacle_vector = {.x=0, .y=0}
-	# for each captor, we check if there is detection
-	while (counter < 8) {
-			if (frontValue != 0) {
-					# We sum all the vector define by the value and angle of detection.
-					# it will become a good indicator of where is the closest part of the obstacle
-					# because we ponderate the angle of detection by his distance to the agent
-					vec2_sum(obstacle_vector, vec2_new_polar(proximity[counter].value, proximity[counter].angle))
-			}
-			counter = counter + 1
-	}
-	if ((obstacle_vector.x != 0) or (obstacle_vector.y != 0)) {
-			gotop(10.0, vec2_angle(obstacle_vector) + math.pi / 2)
-	# if there is no obstacle, we move further close from the center of the herd or away of the dog
-	} else {
+  obstacle_vector = {.x=0.0, .y=0.0}
+	mass_center = {.x=0.0, .y=0.0}
+	dog_vector = {.x=0.0, .y=0.0}
 
-		mass_center = {.x=0, .y=0}
-		dog_vector = {.x=0, .y=0}
+	count_obs = 0
+	count_mass_center = 0
+	count_dog_vector = 0
 
-		neighbors.kin().foreach(function(rid, data) {
-			if ((data.distance <= threshold) and (rid != 0)) {
-				vec2_sum(mass_center, vec2_new_polar(data.distance, data.azimuth))
-			}
-		})
-		
-		neighbors.nonkin().foreach(function(rid, data) {
-			if ((data.distance <= threshold) and (rid != 0)) {
-				vec2_sum(dog_vector, vec2_new_polar(data.distance, data.azimuth))
-			}
-		})
-
-		var direction = {.x=0, .y=0}
-		# if there is neighbors
-  	if (vec2_length(mass_center) != 0 or vec2_length(dog_vector) != 0) {
-			# we determine the average  vector from the center of the herd and the wolf to get a natural behavior from the sheep,
-			# he wants to get away from the dog, but stay with his herd.
-
-			# log("dog_vect x:", dog_vector.x, " y: ", dog_vector.y)
-			# log("mass_center x:", mass_center.x, " y: ", mass_center.y)
-
-			# if we see the dog, we get away from it, by adding the opposite vector to the direction vector
-			if (vec2_length(dog_vector) != 0) {
-				# the more the dog is near, the more the sheep will get away by using the inverse of the length of the dog vector
-				var escape_dog = vec2_new_polar( vec2_length(mass_center) ^ 2 / vec2_length(dog_vector), 	vec2_angle(dog_vector) + math.pi)
-				# log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))
-				vec2_sum(direction, escape_dog)
-			}
-			if (vec2_length(mass_center) != 0) {
-				vec2_sum(direction, mass_center)
-			}
-			gotop(10.0, vec2_angle(direction))
-
-		} else {
-			random_move()
+	neighbors.kin().foreach(function(rid, data) {
+		if ((data.distance <= threshold) and (rid != 0)) {
+			vec2_sum(mass_center, vec2_new_polar(data.distance, data.azimuth))
+			count_mass_center = count_mass_center + 1
 		}
-		# log("___direction: x:", direction.x," y:", direction.y)
+		if (data.distance <= 30) {
+			vec2_sum(obstacle_vector, vec2_new_polar(data.distance, data.azimuth))
+			count_obs = count_obs + 1
+		}
+	})
+		
+	neighbors.nonkin().foreach(function(rid, data) {
+		if ((data.distance <= threshold) and (rid != 0)) {
+			vec2_sum(dog_vector, vec2_new_polar(data.distance, data.azimuth))
+			count_dog_vector = count_dog_vector + 1
+		}
+		if (data.distance <= 30) {
+			vec2_sum(obstacle_vector, vec2_new_polar(data.distance, data.azimuth))
+			count_obs = count_obs + 1
+		}
+	})
+	
+	if (count_obs != 0) {
+		obstacle_vector = {.x=obstacle_vector.x / count_obs, .y=obstacle_vector.y / count_obs}
 	}
+	if (count_mass_center != 0) {
+		mass_center = {.x=mass_center.x / count_mass_center, .y=mass_center.y / count_mass_center}
+	}
+	if (count_dog_vector != 0) {
+		dog_vector = {.x=dog_vector.x / count_dog_vector, .y=dog_vector.y / count_dog_vector}
+	}
+	
+	log(count_obs, " obstalces, ", count_mass_center, " voisins, ", count_dog_vector, " chien")
+
+	escape_dog = {.x = 0.0, .y = 0.0}
+	escape_obs = {.x = 0.0, .y = 0.0}
+
+	var direction = {.x=0.0, .y=0.0}
+	# if there is neighbors
+  if (vec2_length(mass_center) != 0 or vec2_length(dog_vector) != 0) {
+		# we determine the average  vector from the center of the herd and the wolf to get a natural behavior from the sheep,
+		# he wants to get away from the dog, but stay with his herd.
+		
+		log("dog_vect x:", dog_vector.x, " y: ", dog_vector.y, " len: ", vec2_length(dog_vector))
+		log("mass_center x:", mass_center.x, " y: ", mass_center.y, " len: ", vec2_length(mass_center))
+
+		# if we see the dog, we get away from it, by adding the opposite vector to the direction vector
+		
+		# if the dog is visible
+		if (vec2_length(dog_vector) != 0) {
+			# and if other sheep are visible
+			if (vec2_length(mass_center) != 0) {
+				# We compute a excape vector, of the opposite direction of the dog
+				# we make sure that the closer the dog is, the bigger the escape vector will be
+				escape_dog = vec2_new_polar( vec2_length(mass_center) ^ 2 / vec2_length(dog_vector), 	vec2_angle(dog_vector) + math.pi)
+			
+			} else {
+				# if no sheep is visible, we juste escape the dog
+				escape_dog = vec2_new_polar( 1, 	vec2_angle(dog_vector) + math.pi)
+			}
+			log("escape_dog x:", escape_dog.x, " y: ", escape_dog.y, " len: ", vec2_length(escape_dog))
+			vec2_sum(direction, escape_dog)
+		}
+
+		if (vec2_length(obstacle_vector) != 0) {
+			# and if dog s visible
+			if (vec2_length(escape_dog) != 0) {
+				# We compute a excape vector, of the opposite direction of the obstacle
+				# we make sure that it will be twice a big as the dog vector
+				escape_obs = vec2_new_polar(2 * vec2_length(escape_dog), 	vec2_angle(obstacle_vector) + (math.pi))
+			
+			} else {
+				# if no dog is visible, we juste escape the dog
+				escape_obs = vec2_new_polar( 1, 	vec2_angle(obstacle_vector) + (math.pi))
+			}
+			log("escape_obs x:", escape_obs.x, " y: ", escape_obs.y, " len: ", vec2_length(escape_obs))
+			vec2_sum(direction, escape_obs)
+		
+		# if there is no obstacle, we go closer to the center of mass
+		} else if (vec2_length(mass_center) != 0) {
+			vec2_sum(direction, mass_center)
+		}
+		gotop(10.0, vec2_angle(direction))
+
+	} else {
+		random_move()
+	}
+	debug.rays.add(0,0,0, mass_center.x, mass_center.y, 0.0)
+	debug.rays.add(255,0,0, escape_dog.x, escape_dog.y, 0.0)
+	debug.rays.add(0,255,0, escape_obs.x, escape_obs.y, 0.0)
+	debug.rays.add(0,0,255, direction.x, direction.y, 0.0)
+
+	# log("___direction: x:", direction.x," y:", direction.y)
+	
 }
 
 ### Fonctions pour l'objectif ###
@@ -405,7 +450,7 @@ function step() {
 
 	# debug.print("test au dessus du robot")
 	# debug.rays.add("255,255,255, x, y, z)
-	# debug.clear()
+	debug.rays.clear()
 
 	threshold = 150
 	dog.exec(function() { d_move(threshold) })
