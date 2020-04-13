@@ -8,7 +8,7 @@
     <system threads="0" />
     <experiment length="0"
                 ticks_per_second="10"
-                random_seed="90" />
+                random_seed="01" />
   </framework>
 
   <!-- *************** -->
@@ -16,7 +16,7 @@
   <!-- *************** -->
   <controllers>
 
-    <buzz_controller_kheperaiv id="Bot">
+    <buzz_controller_kheperaiv id="TrueBot">
       <actuators>
         <differential_steering implementation="default" />
         <leds                  implementation="default" medium="leds" />
@@ -25,10 +25,10 @@
       <sensors>
         <kheperaiv_proximity implementation="default" show_rays="true" />
         <range_and_bearing   implementation="medium" medium="rab"
-                             show_rays="false" noise_std_dev="0" />
+                             show_rays="true" noise_std_dev="0" />
         <positioning         implementation="default" />
       </sensors>
-      <params bytecode_file="Controller.bo" debug_file="Controller.bdb" />
+      <params bytecode_file="TrueBot.bo" debug_file="TrueBot.bdb" />
     </buzz_controller_kheperaiv>
 
 
@@ -40,17 +40,17 @@
   <arena size="10, 10, 1" center="0,0,0.5">
 
 
-    <box id="wall_north" size="9,0.1,0.5" movable="false">
-      <body position="0,4.5,0" orientation="0,0,0" />
+    <box id="wall_north" size="10,0.1,0.5" movable="false">
+      <body position="0,5,0" orientation="0,0,0" />
     </box>
-    <box id="wall_south" size="9,0.1,0.5" movable="false">
-      <body position="0,-4.5,0" orientation="0,0,0" />
+    <box id="wall_south" size="10,0.1,0.5" movable="false">
+      <body position="0,-5,0" orientation="0,0,0" />
     </box>
-    <box id="wall_east" size="0.1,9,0.5" movable="false">
-      <body position="4.5,0,0" orientation="0,0,0" />
+    <box id="wall_east" size="0.1,10,0.5" movable="false">
+      <body position="5,0,0" orientation="0,0,0" />
     </box>
-    <box id="wall_west" size="0.1,9,0.5" movable="false">
-      <body position="-4.5,0,0" orientation="0,0,0" />
+    <box id="wall_west" size="0.1,10,0.5" movable="false">
+      <body position="-5,0,0" orientation="0,0,0" />
     </box>
 
 
@@ -64,33 +64,52 @@
         standard deviation is 360 degrees.
     -->
     <distribute>
-      <position method="uniform" min="-2,-2,0" max="2,2,0" />
-      <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="10" max_trials="100">
-        <kheperaiv id="bot" rab_data_size="1000" rab_range="10">
-          <controller config="Bot" />
+      <position method="uniform" min="-4,0,0" max="0,0,0" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="2" max_trials="100">
+        <kheperaiv id="chien">
+          <controller config="TrueBot" />
         </kheperaiv>
       </entity>
     </distribute>
 
-<!--
-    <kheperaiv id="bot6" rab_data_size="1000" rab_range="10">
-      <body position="-0.4676,0.27,0" orientation="0,0,0" />
-      <controller config="TrueBot"/>
-    </kheperaiv>
--->
-
 
     <!--
+        Murs de l'enclos
+    
     <distribute>
-      <position method="uniform" min="-2,-2,0" max="2,2,0" />
-      <orientation method="uniform" min="0,0,0" max="360,0,0" />
-      <entity quantity="7" max_trials="100">
-        <box id="b" size="0.3,0.3,0.2" movable="false" />
+      <position method="constant" values="3.69,1.5,0" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="1" max_trials="100">
+        <box id="enclos_gauche" size="2.5,0.1,0.5" movable="false" />
       </entity>
     </distribute>
 
+    <distribute>
+      <position method="constant" values="3.69,-1.5,0" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="1" max_trials="100">
+        <box id="enclos_droit" size="2.5,0.1,0.5" movable="false" />
+      </entity>
+    </distribute>
 
+    <distribute>
+      <position method="constant" values="2.49,-1.199,0" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="1" max_trials="100">
+        <box id="porte_droite" size="0.1,0.5,0.5" movable="false" />
+      </entity>
+    </distribute>
+
+    <distribute>
+      <position method="constant" values="2.49,1.199,0" />
+      <orientation method="constant" values="0,0,0" />
+      <entity quantity="1" max_trials="100">
+        <box id="porte_gauche" size="0.1,0.5,0.5" movable="false" />
+      </entity>
+    </distribute>
+    -->
+    <!--
     <distribute>
       <position method="uniform" min="-2,-2,0" max="2,2,0" />
       <orientation method="constant" values="0,0,0" />
@@ -113,7 +132,7 @@
   <!-- * Media * -->
   <!-- ********* -->
   <media>
-    <range_and_bearing id="rab" check_occlusions="false"/>
+    <range_and_bearing id="rab" />
     <led id="leds" />
   </media>
 
