@@ -39,7 +39,8 @@
   <!-- *********************** -->
   <arena size="10, 10, 1" center="0,0,0.5">
 
-    <floor id="floor" source="image" pixels_per_meter="50" path="/home/vincent/Documents/Swarm_cours/INF6953/floor/base-floor.png"/>
+    <floor id="floor" source="image" pixels_per_meter="50" path="/home/vincent/Documents/Swarm_cours/INF6953/floor/race-floor.png"/>
+
 
 
     <box id="wall_north" size="10,0.1,0.5" movable="false">
@@ -55,6 +56,7 @@
       <body position="-5,0,0" orientation="0,0,0" />
     </box>
 
+
     <!--
         You can distribute entities randomly. Here, we distribute
         10 foot-bots in this way:
@@ -64,42 +66,25 @@
         from a gaussian distribution, whose mean is zero degrees and
         standard deviation is 360 degrees.
     -->
+
+    
+    <kheperaiv id="bot0" rab_data_size="1000" rab_range="10">
+      <body position="-4,0,0" orientation="0,0,0" />
+      <controller config="Bot"/>
+    </kheperaiv>
+
     <distribute>
-      <position method="uniform" min="-1,-1,0" max="1,1,0" />
+      <position method="uniform" min="-3,-0.2,0" max="-2,0.2,0" />
       <orientation method="gaussian" mean="0,0,0" std_dev="360,0,0" />
-      <entity quantity="10" max_trials="100">
-        <kheperaiv id="bot" rab_data_size="1000" rab_range="10">
+      <entity quantity="5" max_trials="100">
+        <kheperaiv id="bot1" rab_data_size="1000" rab_range="10">
           <controller config="Bot" />
         </kheperaiv>
       </entity>
     </distribute>
 
-<!--
-    <kheperaiv id="bot6" rab_data_size="1000" rab_range="10">
-      <body position="-0.4676,0.27,0" orientation="0,0,0" />
-      <controller config="TrueBot"/>
-    </kheperaiv>
--->
 
-
-    <!--
-    <distribute>
-      <position method="uniform" min="-2,-2,0" max="2,2,0" />
-      <orientation method="uniform" min="0,0,0" max="360,0,0" />
-      <entity quantity="7" max_trials="100">
-        <box id="b" size="0.3,0.3,0.2" movable="false" />
-      </entity>
-    </distribute>
-
-
-    <distribute>
-      <position method="uniform" min="-2,-2,0" max="2,2,0" />
-      <orientation method="constant" values="0,0,0" />
-      <entity quantity="7" max_trials="100">
-        <cylinder id="c" height="0.2" radius="0.15" movable="false" />
-      </entity>
-    </distribute>
-    -->
+   
 
   </arena>
 
@@ -114,7 +99,7 @@
   <!-- * Media * -->
   <!-- ********* -->
   <media>
-    <range_and_bearing id="rab" check_occlusions="false"/>
+    <range_and_bearing id="rab" />
     <led id="leds" />
   </media>
 

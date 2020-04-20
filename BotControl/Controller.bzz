@@ -22,19 +22,6 @@ function table_v_print(t) {
     })
 }
 
-# print clusters
-function cluster_print(t) {
-  	foreach(t, function(key, value) {
-    	if(key == "nbre_individus") {
-			nbre = 0
-			while(nbre < value) {
-				log(t[nbre]["id"])#, " -> ", vec2_str(t[nbre]))
-				nbre = nbre + 1
-			}
-		}
-  	})
-}
-
 # Rads to degrees
 function rtod(r) {
    return (r*(180.0/math.pi))
@@ -83,6 +70,18 @@ function vec2_angle(v) {
 function vec2_length(v) {
 	return math.sqrt((v.x * v.x) + (v.y * v.y))
 }
+
+# Rotation 2D by an angle 
+function vec2_rot(v1, angle) {
+	return {.x = v1.x * math.cos(angle) - v1.y * math.sin(angle), .y =  v1.x * math.sin(angle) + v1.y * math.cos(angle)}
+}
+
+# multiplication by a constant
+function vec2_scale(v1, const) {
+	return {.x = v1.x * const, .y =  v1.y * const}
+}
+
+
 
 ######################### function for tables #########################
 
@@ -477,158 +476,160 @@ function cluster_creator(C, n, R, P) {
 		}
 		indc = indc + 1
 	}
+	# calcul des centres de masse pour chaque cluster
+	foreach(clusters, function (i, cluster) {
+		clusters[i]["mass_center"] = mean(clusters[i])
+	})
+
 
 	return {.clusters = clusters, .nbre_cluster = nbre_cluster}
 }
 
 
-# K-mean aglorithme for a robot on the non-kin
-# return the clusters and the total distance of all point from the center of the cluster
-function kmean(nb_cluster){
-
-	# log("nb_cluster: ", nb_cluster)
-	points = {}
-	robots = {}
-
-	rbt_counter = 0
-	neighbors.nonkin().foreach(function(rid, data) {
-		if (rid != 0) {
-			# log("robot ", rid, ": ",
-			# "distance  = ", data.distance, ", ",
-			# "azimuth   = ", data.azimuth, ", ",
-			# "elevation = ", data.elevation)
-
-			robots[rbt_counter] = rid
-			# log("le ", rbt_counter, " robot d'id: ", rid)
-			rbt_counter = rbt_counter + 1
-			points[rid] = vec2_new_polar(data.distance, data.azimuth)	
-		}	
-	})
-
-	# log("points: ")
-	# table_v_print(points)
-
-	# log("robot id")
-	# table_print(robots)
-
-	i = 0
-	center = {}
-	cluster= {}
-
-	while (i < nb_cluster) {
-		cluster[i] = {}
-		center[i] = points[robots[i]]
-		i = i + 1
-	}
-
-	# log("centers: ")
-	# table_v_print(center)
-
-	# log("debut boucle while")
-
-	counter_dist = 0
-	distance_tot = 0
-
-	while (counter_dist < 5) {
-		distance_tot = 0
-		foreach(points, function(id,pt) {
-
-      # log("test du pt: ", id, " x:", pt.x, " y:", pt.y)
-      var distance = {}
-      i = 0
-      while (i < nb_cluster) {
-        distance[i] = vec2_length(vec2_diff_r(center[i], pt))
-        # log("distance du ", i, " cluster au pt: ", distance[i])
-        i = i + 1
-      }
-			# log("distance: ")
-			# table_print(distance)
-
-			min_distance = minimum(distance)
-			# log("min distance: ")
-      # log(min_distance)
-
-			i = 0
-      while ( i < nb_cluster) {
-        if(distance[i] == min_distance) {
-          # log("ajout du point ", id, " au cluster ",i)
-					distance_tot = 	distance_tot + min_distance
-          cluster[i][id] = pt
-					# log("cluster ", i, " : ")
-					# table_v_print(cluster[i])
-        }
-        i = i + 1
-      }
-    })
-	counter_dist = counter_dist + 1
-
-	}
-	return {.distance = distance_tot, .clusters = cluster}
-}
 
 ### Fonctions pour les chiens ###
+
+
+
 # Mouvement des chiens (marche aleatoire pour le moment)
+function d_test() {
+	# log(pose.orientation.yaw," ",pose.orientation.pitch," ",pose.orientation.roll)
+	# log(pose.position.x," ",pose.position.y)
+	
+	
+	x1 = pose.position.x
+	y1 = pose.position.y
+	x2 = objective[obj_i].x
+	y2 = objective[obj_i].y
+	hyp = math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))
+	angle = math.acos(math.abs(x2-x1)/hyp)
+	
+	if(x1<x2) {
+		if(y1<y2) {
+			angle2 =  (angle - pose.orientation.yaw)
+		} else {
+			angle2 =  (- angle - pose.orientation.yaw)
+		}
+	} else {
+		if(y1<y2) {
+			angle2 =   - (math.pi - (-angle - pose.orientation.yaw))
+		} else {
+			angle2 =  - (math.pi - (angle - pose.orientation.yaw))
+		}
+	}
+	
+	
+	length = hyp*100
+	# log("triangle: ",angle*180/math.pi,",robot: ",pose.orientation.yaw*180/math.pi)
+	# debug.print(dist,", ",angle2*180/math.pi)
+	vec_obj = vec2_new_polar(length, angle2)
+	# vec_obj = {.x = objective.x - pose.position.x , .y = objective.y - pose.position.y }
+	# debug.print("objectif: ", vec2_str(vec_obj))
+	gotoc(vec_obj.x, vec_obj.y)
+
+	if(length<10) {
+		obj_i = obj_i + 1
+	}
+	
+}
+
+
+function dist_angle_gps(p1, o1, p2) {
+	#p1: position du point 1 en x,y en coordonnées gps
+	#o1: orientation gps du point 1
+	#p2: position du point 2 en x,y en coordonnées gps
+	x1 = p1.x
+	y1 = p1.y
+	x2 = p2.x
+	y2 = p2.y
+	hyp = math.sqrt((x2-x1)*(x2-x1)+(y2-y1)*(y2-y1))
+	angle_tri = math.acos(math.abs(x2-x1)/hyp)
+
+	if(x1<x2) {
+		if(y1<y2) {
+			angle =  (angle_tri - o1)
+		} else {
+			angle =  (- angle_tri - o1)
+		}
+	} else {
+		if(y1<y2) {
+			angle =   - (math.pi - (-angle_tri - o1))
+		} else {
+			angle =  - (math.pi - (angle_tri - o1))
+		}
+	}
+	length = hyp * 100
+	return{.length = length, .angle = angle}
+}
+
+
 function d_move(threshold) {
 
-	vec_obj = {.x = 0, .y = 0}
-	
-	neighbors.nonkin().foreach(function(rid, data) {
-		if (rid == 0) {
-			vec_obj = vec2_new_polar(data.distance, data.azimuth)	
-		}	
-	})
-	#log("objectif: ", vec2_str(vec_obj))
+	# On trouve la direction vers l'objectif grâce à la fonctionnalité GPS du chien
+	obj = dist_angle_gps(pose.position, pose.orientation.yaw, objective[obj_i])
+	vec_obj = vec2_new_polar(obj.length, obj.angle)
+	#debug.print("objectif: ", vec2_str(vec_obj))
 
-	if (custom_count() >= 2 and vec2_length(vec_obj) != 0) {
-		
+	if (neighbors.count() >= 1) {
+		# On trouve les différents clusters et leur centre de masse avec un algorithme de single linkage
 		results = singleLinkage(threshold, 0)
-
-		# TODO comportement a partir des clusters
-		# log("computation des centres de masses")
 		clusters = results.clusters
-		foreach(clusters, function (i, cluster) {
-			clusters[i]["mass_center"] = mean(clusters[i])
-			#log("cluster ", i)
-			#table_v_print(results.clusters[i])
-		})
-
+		# On choisi le cluster le plus éloigné pour ne pas "bloquer" sur un cluster
 		cluster_cible = clusters[0]
 		foreach(clusters, function (i, cluster) {
 			if (vec2_length(vec2_diff_r(vec_obj, clusters[i]["mass_center"])) > vec2_length(vec2_diff_r(vec_obj, cluster_cible["mass_center"]))) {
 				cluster_cible = clusters[i]
 			}
 		})
-		#log("cluster_cible: ")
-		#table_v_print(cluster_cible)
 
-		if (vec2_length( cluster_cible.mass_center) >= threshold * 1.1) {
-			#log("on rejoint le cluster")
-			gotop(10, vec2_angle(cluster_cible.mass_center))
-		} else if (vec2_length( cluster_cible.mass_center) < threshold * 0.5) {
-			#log("on est trop pret")
-			zero()
-		} else {
-			#log("on est a portée")
-			ortho = {.x = 0, .y = 0}
-			orhto1 = {.x = cluster_cible.mass_center.y, .y = -cluster_cible.mass_center.x}
-			orhto2 = {.x = -cluster_cible.mass_center.y, .y = cluster_cible.mass_center.x}
-			if (vec2_length(vec2_diff_r(vec_obj, orhto1)) > vec2_length(vec2_diff_r(vec_obj, orhto2))) {
-				ortho = orhto1
+
+		var cm_var = vec2_rot(cluster_cible.mass_center, pose.orientation.yaw) 
+		cm_var = vec2_scale(cm_var, 0.01) 
+		cm_gps = vec2_sum_r(pose.position, cm_var)
+		
+		
+		if (vec2_length(vec2_diff_r(vec_obj, cluster_cible.mass_center)) > 30) {
+
+			#log("cluster_cible: ")
+			#table_v_print(cluster_cible)
+			if (vec2_length(cluster_cible.mass_center) >= threshold * 1.1) {
+				#log("on rejoint le cluster")
+				gotop(10, vec2_angle(cluster_cible.mass_center))
+			} else if (vec2_length( cluster_cible.mass_center) < threshold * 0.5) {
+				#log("on est trop pret")
+				zero()
 			} else {
-				ortho = orhto2
-			}
-			#log("orthogonal", vec2_str(ortho))
-			#log("coef de col: ", vec_obj.x * cluster_cible.mass_center.y - vec_obj.y * cluster_cible.mass_center.x)
-			if (math.abs(vec_obj.x * cluster_cible.mass_center.y - vec_obj.y * cluster_cible.mass_center.x) > 1000) {
-				#log("pas colinéaire ")
-				gotop(10, vec2_angle(ortho))
-			} else {
-				#log("colinéaire !!")				
-				gotop(10, vec2_angle(vec_obj))
+				#log("on est a portée")
+				ortho = {.x = 0, .y = 0}
+				orhto1 = {.x = cluster_cible.mass_center.y, .y = -cluster_cible.mass_center.x}
+				orhto2 = {.x = -cluster_cible.mass_center.y, .y = cluster_cible.mass_center.x}
+				if (vec2_length(vec2_diff_r(vec_obj, orhto1)) > vec2_length(vec2_diff_r(vec_obj, orhto2))) {
+					ortho = orhto1
+				} else {
+					ortho = orhto2
+				}
+				#log("orthogonal", vec2_str(ortho))
+				#log("coef de col: ", vec_obj.x * cluster_cible.mass_center.y - vec_obj.y * cluster_cible.mass_center.x)
+				if (math.abs(vec_obj.x * cluster_cible.mass_center.y - vec_obj.y * cluster_cible.mass_center.x) > 1000) {
+					#log("pas colinéaire ")
+					gotop(10, vec2_angle(ortho))
+				} else {
+					#log("colinéaire !!")				
+					gotop(5, vec2_angle(vec_obj)) #possible pb ici
+				} 
 			} 
+		} else {
+			if (obj_i < size(objective)) {
+				
+				obj_i = obj_i + 1
+				log(obj_i,": ",objective[obj_i].x," ",objective[obj_i].y )
+				
+			} else {
+				zero()
+			}
 		}
 	} else {
-	random_move()
+		random_move()
 	}
 }
 
@@ -649,7 +650,7 @@ function s_move(threshold) {
 	count_dog_vector = 0
 
 	neighbors.kin().foreach(function(rid, data) {
-		if ((data.distance <= threshold) and (rid != 0)) {
+		if ((data.distance <= threshold)) {
 			vec2_sum(mass_center, vec2_new_polar(data.distance, data.azimuth))
 			count_mass_center = count_mass_center + 1
 		}
@@ -660,7 +661,7 @@ function s_move(threshold) {
 	})
 		
 	neighbors.nonkin().foreach(function(rid, data) {
-		if ((data.distance <= threshold) and (rid != 0)) {
+		if ((data.distance <= threshold)) {
 			vec2_sum(dog_vector, vec2_new_polar(data.distance, data.azimuth))
 			count_dog_vector = count_dog_vector + 1
 		}
@@ -751,34 +752,35 @@ function zero() {
 	goto(0.0,0.0)     
 }
 
-function StopSimu(nbreSheep) {
-	# TODO voir les robots dans un cercle autour, les compter pour arreter la simu
-	neighborsIn = neighbors.filter(function(rid, data) {
-		return data.distance < 100 })
-	#log(neighborsIn.count()," moutons a proximité")
-	if (neighborsIn.count() >= nbreSheep) {
-		message_id = string.tostring(stop)
-		neighbors.broadcast(message_id, 1)
-	}  
-}
+
 
 
 
 ### Fonctionnement Global ###
 # Executed at init time
 function init() {
-	# Local knowledge table
-  	knowledge = {}
-	Arret = 0
-	#initialisation de l'objectif: celui ci sera TOUJOURS id 0
-	objectif = swarm.create(0)
-	objectif.select(id == 0)
+	# Point fixe (x,y)
+	objective = {}
+	# Test classique
+	# objective[1] = {.x = 3, .y = 0}
+
+	# Test Path
+	# objective[1] = {.x = -3, .y = 2}
+	# objective[2] = {.x = -2, .y = -2}
+	# objective[3] = {.x = 0, .y = -3}
+	# objective[4] = {.x = 2, .y = -2}
+	# objective[5] = {.x = 3, .y = 3}
+
+	# Test Race
+	objective[1] = {.x = 5, .y = 0}
+
 	# On initialise 2 swarm (dog et sheep) pour différencier deux comportements
 	dog = swarm.create(1)
 	sheep = swarm.create(2)
-	dog.select(id == 1 or id == 1100)
-	sheep.select(id != 0 and id != 1)
+	dog.select(id == 0 or id == 100)
+	sheep.select(id != 0 and id != 100)
 	
+	obj_i = 1
 }
 
 # Executed every time step
@@ -788,21 +790,12 @@ function step() {
 	# debug.rays.add("255,255,255, x, y, z)
 	# debug.clear()
 	debug.rays.clear()
-	threshold = 75
-	nbreSheep = 8
-	# objectif.exec(function() { StopSimu(nbreSheep)})
-	# message_id = string.tostring(stop)
-	# neighbors.listen(message_id, function(vid, value, rid) {
-    #   	Arret = 1
-   	# })
-	if (Arret == 1) {
-		zero()
-	} else {
-		#dog.exec(function() { singleLinkage(threshold, 0) })
-		dog.exec(function() { d_move(threshold) })
-		sheep.exec(function() { s_move(threshold) })
-		objectif.exec(function() { zero()})
-	}
+	threshold = 100
+
+	#dog.exec(function() { d_test() })
+	dog.exec(function() { d_move(threshold) })
+	sheep.exec(function() { s_move(threshold) })
+	
 	
 	
 	
